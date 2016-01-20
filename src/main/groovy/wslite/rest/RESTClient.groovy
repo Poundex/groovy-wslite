@@ -14,9 +14,11 @@
  */
 package wslite.rest
 
+import groovy.transform.CompileStatic
 import wslite.http.*
 import wslite.http.auth.*
 
+@CompileStatic
 class RESTClient {
 
     String url
@@ -24,15 +26,24 @@ class RESTClient {
     RequestBuilder requestBuilder = new RequestBuilder()
     ResponseBuilder responseBuilder = new ResponseBuilder()
 
-    def defaultAcceptHeader
-    def defaultContentTypeHeader
+    Object defaultAcceptHeader
+    String defaultContentTypeHeader
     String defaultCharset = 'UTF-8'
 
-    RESTClient(HTTPClient client=new HTTPClient()) {
-        this.httpClient = client
+    RESTClient()
+    {
+        this(null, null)
     }
 
-    RESTClient(String url, HTTPClient client=new HTTPClient()) {
+    RESTClient(HTTPClient client) {
+        this(null, client)
+    }
+
+    RESTClient(String url) {
+        this(url, null)
+    }
+
+    RESTClient(String url, HTTPClient client) {
         this.url = url
         this.httpClient = client
     }
@@ -111,7 +122,7 @@ class RESTClient {
         return buildResponse(httpRequest, httpResponse)
     }
 
-    private createRequestParams(Map params) {
+    private Map createRequestParams(Map<String, Map<String, ?>> params) {
         Map requestParams = new LinkedHashMap(params ?: [:])
         Map headerMap = new TreeMap(String.CASE_INSENSITIVE_ORDER)
         if (params.headers) {
@@ -121,7 +132,7 @@ class RESTClient {
         return requestParams
     }
 
-    private Response buildResponse(httpRequest, httpResponse) {
+    private Response buildResponse(HTTPRequest httpRequest, HTTPResponse httpResponse) {
         Response response
         try {
             response = responseBuilder.build(httpRequest, httpResponse)
@@ -131,14 +142,14 @@ class RESTClient {
         return response
     }
 
-    private void setDefaultAcceptParam(params) {
+    private void setDefaultAcceptParam(Map params) {
         if (!params.containsKey('accept') && defaultAcceptHeader) {
-            params.headers[HTTP.ACCEPT_HEADER] = (defaultAcceptHeader instanceof ContentType) ?
-                             defaultAcceptHeader.acceptHeader : defaultAcceptHeader.toString()
+             params.headers[HTTP.ACCEPT_HEADER] = (defaultAcceptHeader instanceof ContentType) ?
+                     (defaultAcceptHeader as ContentType).acceptHeader : defaultAcceptHeader.toString()
         }
     }
 
-    private void setDefaultContentHeader(params, contentType) {
+    private void setDefaultContentHeader(Map<String, Map<String, ?>> params, Object contentType) {
         if (!params.headers.containsKey(HTTP.CONTENT_TYPE_HEADER)) {
             params.headers[HTTP.CONTENT_TYPE_HEADER] = contentType
         }
